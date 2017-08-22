@@ -5,7 +5,7 @@ name := "subs"
 version := "0.0.1-SNAPSHOT"
 scalaVersion := "2.12.2"
 
-val Http4sVersion = "0.17.0-M2"
+val Http4sVersion = "0.17.0-RC1"
 
 scalafmtOnCompile := true
 
