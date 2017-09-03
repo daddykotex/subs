@@ -16,7 +16,7 @@ object Web {
   val app = HttpService[IO] {
     // Note: No `Root` this is due to a limitation in the language, it sucks, but that's life
     case request @ GET -> "static" /: path =>
-      StaticFile.fromResource(path.toString, Some(request)).getOrElseF(NotFound())
+      StaticFile.fromResource("/static" + path.toString, Some(request)).getOrElseF(NotFound())
 
     case request @ POST -> Root / "signup" =>
       request.decode[UrlForm] { data =>
