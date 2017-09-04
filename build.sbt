@@ -16,6 +16,7 @@ libraryDependencies ++= Seq(
   "org.http4s"     %% "http4s-dsl"          % Http4sVersion,
   "org.http4s"     %% "http4s-twirl"        % Http4sVersion,
   "org.tpolecat"   %% "doobie-core"         % DoobieVersion,
+  "org.tpolecat"   %% "doobie-hikari"       % DoobieVersion,
   "org.tpolecat"   %% "doobie-postgres"     % DoobieVersion,
   "org.tpolecat"   %% "doobie-specs2"       % DoobieVersion,
   "org.postgresql" % "postgresql"           % "42.1.4",
