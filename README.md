@@ -10,16 +10,33 @@ It's an idea I had and the design is very experimental. I'll lay out the details
 
 ## Database
 
-This project uses PostgreSQL 9.6.
+This project uses PostgreSQL 9.6. Export the following variables, they will be used for the rest of the section:
+```
+export DB_HOST=...
+export DB_PORT=...
+export DB_NAME=...
+export DB_USER=...
+export DB_PASS=...
+export DB_JDBC_URL="jdbc:postgresql://$DB_HOST:$DB_PORT/$DB_NAME"
+```
 
 ### Connection
 
 I use docker to run psql:
 ```
-DB_HOST=...
-DB_PORT=...
-DB_NAME=...
-DB_USER=...
-DB_PASS=...
 docker run --rm -it --entrypoint=psql postgres:9.6 "postgres://$DB_USER:$DB_PASS@$DB_HOST/$DB_NAME"
+```
+
+### Schema
+
+I use Flyway to manage the database schema. Since I use SBT for this build, I thought it would make sense to use the Flyway's SBT plugin. Read the docs: [https://flywaydb.org/documentation/sbt/](https://flywaydb.org/documentation/sbt/).
+
+To check the state of the data base, run:
+```
+sbt -Dflyway.user=$DB_USER -Dflyway.password=$DB_PASS -Dflyway.url=$DB_JDBC_URL flywayInfo
+```
+
+To run the migrations:
+```
+sbt -Dflyway.user=$DB_USER -Dflyway.password=$DB_PASS -Dflyway.url=$DB_JDBC_URL flywayMigrate
 ```
