@@ -4,9 +4,7 @@ import java.time.ZoneOffset
 import java.util.TimeZone
 
 import cats.effect.IO
-import cats.implicits._
 import doobie.hikari._
-import doobie.hikari.implicits._
 import fs2.Stream
 import java.util.concurrent.Executors
 
@@ -52,7 +50,7 @@ object Server extends StreamApp[IO] {
   override def stream(args: List[String], requestShutdown: IO[Unit]): Stream[IO, Nothing] = {
     BlazeBuilder[IO]
       .bindLocal(port)
-      .mountService(Web.app(xa, TimeProvider.now(), userRepo))
+      .mountService(Web.app(xa, NowTimeProvider, userRepo))
       .withExecutionContext(pool)
       .serve
   }

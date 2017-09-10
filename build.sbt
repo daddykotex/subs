@@ -5,6 +5,11 @@ name := "subs"
 version := "0.0.1-SNAPSHOT"
 scalaVersion := "2.12.3"
 
+scalacOptions ++= ScalacOptions.All
+// TODO: Try to figure out a way to keep the warn-unused:imports
+// scalacOptions in (Compile, TwirlKeys.sourceEncoding) ~= (_ filterNot (_ == "-Ywarn-unused:imports"))
+// scalacOptions in (Compile, TwirlKeys.compileTemplates) ~= (_ filterNot (_ == "-Ywarn-unused:imports"))
+
 val Http4sVersion = "0.18.0-M1"
 val DoobieVersion = "0.5.0-M6"
 

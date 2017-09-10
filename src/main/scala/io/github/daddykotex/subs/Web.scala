@@ -2,10 +2,7 @@ package io.github.daddykotex.subs
 
 import java.time.Instant
 
-import cats._
-import cats.data._
 import cats.effect.IO
-import cats.implicits._
 import doobie._
 import doobie.free.connection
 import doobie.implicits._
@@ -17,8 +14,6 @@ import org.log4s.getLogger
 object Web {
   private[this] val logger = getLogger
 
-  import TimeProvider.TimeProvider
-
   def app(xa: Transactor[IO], tp: TimeProvider, userRepository: UserRepository): HttpService[IO] = {
     HttpService[IO] {
       case request @ GET -> "static" /: path =>
@@ -27,6 +22,7 @@ object Web {
       case request @ POST -> Root / "signup" =>
         request.decode[UrlForm] { data =>
           data.getFirst("email") map { email =>
+            logger.info(s"Processing signup for $email")
             val dbOp = for {
               exists <- userRepository.isEmailUsed(email)
               _ <- if (!exists) {
@@ -47,7 +43,7 @@ object Web {
   }
 }
 
-object TimeProvider {
-  type TimeProvider = Unit => Instant
-  def now(): TimeProvider = _ => Instant.now()
+trait TimeProvider extends Function0[Instant]
+object NowTimeProvider extends TimeProvider {
+  def apply(): Instant = Instant.now()
 }

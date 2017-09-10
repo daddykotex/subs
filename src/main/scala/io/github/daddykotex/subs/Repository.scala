@@ -4,7 +4,6 @@ import java.time.Instant
 
 import doobie._
 import doobie.implicits._
-import doobie.free.connection
 
 sealed trait UserRepository {
   def isEmailUsed(email: String): ConnectionIO[Boolean]
