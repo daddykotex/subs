@@ -12,34 +12,46 @@ import org.http4s.dsl._
 import org.log4s.getLogger
 
 object Web {
+  import Forms._
+
   private[this] val logger = getLogger
 
   def app(xa: Transactor[IO], tp: TimeProvider, userRepository: UserRepository): HttpService[IO] = {
-    HttpService[IO] {
+    HttpService {
       case request @ GET -> "static" /: path =>
         StaticFile.fromResource("/static" + path.toString, Some(request)).getOrElseF(NotFound())
 
       case request @ POST -> Root / "signup" =>
-        request.decode[UrlForm] { data =>
-          data.getFirst("email") map { email =>
-            logger.info(s"Processing signup for $email")
-            val dbOp = for {
-              exists <- userRepository.isEmailUsed(email)
-              _ <- if (!exists) {
-                userRepository.insertUnverifiedUser(email, tp())
-              } else {
-                connection.delay(0)
-              }
-            } yield exists
-            dbOp.transact(xa).flatMap(_ => SeeOther(request.uri.copy(path = "/signup")))
-          } getOrElse {
-            BadRequest(html.signup("Sign up"))
-          }
+        request.decode[SignUpForm] { sForm =>
+          val email = sForm.email
+          logger.info(s"Processing signup for $email")
+          val dbOp = for {
+            exists <- userRepository.isEmailUsed(email)
+            _ <- if (!exists) {
+              userRepository.insertUnverifiedUser(email, tp())
+            } else {
+              connection.delay(0)
+            }
+          } yield exists
+          dbOp.transact(xa).flatMap(_ => SeeOther(request.uri.copy(path = "/signup")))
         }
 
       case GET -> Root / "signup" =>
         Ok(html.signup("Sign up"))
     }
+  }
+}
+
+object Forms {
+  case class SignUpForm(email: String)
+  object SignUpForm {
+    implicit def signupFormDecoder(implicit original: EntityDecoder[IO, UrlForm]): EntityDecoder[IO, SignUpForm] =
+      original.flatMapR[SignUpForm] {
+        _.getFirst("email") match {
+          case Some(email) => DecodeResult.success(SignUpForm(email))
+          case _ => DecodeResult.failure(InvalidMessageBodyFailure("'email' is required"))
+        }
+      }
   }
 }
 
