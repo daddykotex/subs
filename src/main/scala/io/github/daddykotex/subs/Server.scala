@@ -53,7 +53,7 @@ object Server extends StreamApp[IO] {
     for {
       t <- HikariTransactor[IO]("org.postgresql.Driver", dbConfig.url, dbConfig.user, dbConfig.password)
       _ <- t.configure { hx =>
-        hx setMaximumPoolSize 2
+        hx setMaximumPoolSize 4
       }
     } yield t
   ).unsafeRunSync()
