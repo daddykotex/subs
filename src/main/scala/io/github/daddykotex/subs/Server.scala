@@ -17,6 +17,18 @@ import scala.concurrent.ExecutionContext
 private case class DBConfig(host: String, port: Int, user: String, password: String, dbName: String) {
   val url: String = s"jdbc:postgresql://$host:$port/$dbName"
 }
+private case class EmailConfig(host: String, port: Int, user: String, password: String)
+private object EmailConfig {
+  def apply(): EmailConfig =
+    (
+      for {
+        host <- envOrNone("SMTP_HOST")
+        port <- envOrNone("SMTP_PORT") map (_.toInt)
+        user <- envOrNone("SMTP_USER")
+        password <- envOrNone("SMTP_PASS")
+      } yield EmailConfig(host, port, user, password)
+    ) getOrElse { throw new IllegalArgumentException("SMTP environment variables are invalid.") }
+}
 private object DBConfig {
   def apply(): DBConfig =
     (
@@ -47,10 +59,13 @@ object Server extends StreamApp[IO] {
   ).unsafeRunSync()
   private val userRepo = Repositories.userRepo()
 
+  private val emailConfig = EmailConfig()
+  private val mailer = new Mailer(emailConfig)
+
   override def stream(args: List[String], requestShutdown: IO[Unit]): Stream[IO, Nothing] = {
     BlazeBuilder[IO]
       .bindLocal(port)
-      .mountService(Web.app(xa, NowTimeProvider, userRepo))
+      .mountService(Web.app(xa, NowTimeProvider, userRepo, mailer))
       .withExecutionContext(pool)
       .serve
   }

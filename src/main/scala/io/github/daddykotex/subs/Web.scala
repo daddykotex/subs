@@ -2,6 +2,10 @@ package io.github.daddykotex.subs
 
 import java.time.Instant
 
+import courier._
+
+import io.github.daddykotex.subs.{Mailer => SMailer}
+
 import cats.effect.IO
 import doobie._
 import doobie.free.connection
@@ -16,7 +20,12 @@ object Web {
 
   private[this] val logger = getLogger
 
-  def app(xa: Transactor[IO], tp: TimeProvider, userRepository: UserRepository): HttpService[IO] = {
+  def app(
+      xa: Transactor[IO],
+      tp: TimeProvider,
+      userRepository: UserRepository,
+      mailer: SMailer
+  ): HttpService[IO] = {
     HttpService {
       case request @ GET -> "static" /: path =>
         StaticFile.fromResource("/static" + path.toString, Some(request)).getOrElseF(NotFound())
@@ -24,6 +33,12 @@ object Web {
       case request @ POST -> Root / "signup" =>
         request.decode[SignUpForm] { sForm =>
           val email = sForm.email
+          val emailContent =
+            mailer
+              .newEnvelope()
+              .to(email.addr)
+              .subject("miss you")
+              .content(Text("hi mom"))
           logger.info(s"Processing signup for $email")
           val dbOp = for {
             exists <- userRepository.isEmailUsed(email)
@@ -33,7 +48,11 @@ object Web {
               connection.delay(0)
             }
           } yield exists
-          dbOp.transact(xa).flatMap(_ => SeeOther(request.uri.copy(path = "/signup")))
+          for {
+            _ <- dbOp.transact(xa)
+            _ <- mailer.send(emailContent)
+            resp <- SeeOther(request.uri.copy(path = "/signup"))
+          } yield resp
         }
 
       case GET -> Root / "signup" =>
