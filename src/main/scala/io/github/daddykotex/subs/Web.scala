@@ -2,30 +2,40 @@ package io.github.daddykotex.subs
 
 import java.time.Instant
 
-import courier._
+import com.github.daddykotex.courier.addr
+import com.github.daddykotex.courier.{Multipart}
 
 import io.github.daddykotex.subs.{Mailer => SMailer}
 
-import cats.effect.IO
+import cats.effect.Sync
+import cats._
+import cats.data._
+import cats.implicits._
 import doobie._
 import doobie.free.connection
 import doobie.implicits._
 import org.http4s._
 import org.http4s.twirl._
-import org.http4s.dsl._
+import org.http4s.dsl.Http4sDsl
+import org.http4s.dsl.io._
+import org.http4s.implicits._
+import org.http4s.headers.Location
+import org.http4s.HttpService
+
 import org.log4s.getLogger
 
-object Web {
+class Endpoints[F[_]: Sync] extends Http4sDsl[F] {
   import Forms._
 
   private[this] val logger = getLogger
 
   def app(
-      xa: Transactor[IO],
+      baseUrl: String, //TODO using something else than a String
+      xa: Transactor[F],
       tp: TimeProvider,
       userRepository: UserRepository,
-      mailer: SMailer
-  ): HttpService[IO] = {
+      mailer: SMailer[F]
+  ): HttpService[F] = {
     HttpService {
       case request @ GET -> "static" /: path =>
         StaticFile.fromResource("/static" + path.toString, Some(request)).getOrElseF(NotFound())
@@ -37,21 +47,21 @@ object Web {
             mailer
               .newEnvelope()
               .to(email.addr)
-              .subject("miss you")
-              .content(Text("hi mom"))
+              .subject("Welcome to Subs")
+              .content(Multipart().html(emails.html.verify_email(s"$baseUrl/verify").body))
           logger.info(s"Processing signup for $email")
           val dbOp = for {
             exists <- userRepository.isEmailUsed(email)
-            _ <- if (!exists) {
-              userRepository.insertUnverifiedUser(email, tp())
+            inserted <- if (!exists) {
+              userRepository.insertUnverifiedUser(email, tp()).map(_ => true)
             } else {
-              connection.delay(0)
+              connection.delay(false)
             }
-          } yield exists
+          } yield inserted
           for {
-            _ <- dbOp.transact(xa)
-            _ <- mailer.send(emailContent)
-            resp <- SeeOther(request.uri.copy(path = "/signup"))
+            inserted <- dbOp.transact(xa)
+            _ <- if (inserted) mailer.send(emailContent) else ().pure[F]
+            resp <- SeeOther(Location(request.uri.copy(path = "/signup")))
           } yield resp
         }
 
@@ -64,7 +74,8 @@ object Web {
 object Forms {
   case class SignUpForm(email: String)
   object SignUpForm {
-    implicit def signupFormDecoder(implicit original: EntityDecoder[IO, UrlForm]): EntityDecoder[IO, SignUpForm] =
+    implicit def signupFormDecoder[F[_]: Sync](
+        implicit original: EntityDecoder[F, UrlForm]): EntityDecoder[F, SignUpForm] =
       original.flatMapR[SignUpForm] {
         _.getFirst("email") match {
           case Some(email) => DecodeResult.success(SignUpForm(email))

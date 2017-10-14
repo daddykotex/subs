@@ -9,6 +9,7 @@ import fs2.Stream
 import java.util.concurrent.Executors
 
 import org.http4s.util.StreamApp
+import org.http4s.util.StreamApp.ExitCode
 import org.http4s.server.blaze.BlazeBuilder
 
 import scala.util.Properties.envOrNone
@@ -60,12 +61,16 @@ object Server extends StreamApp[IO] {
   private val userRepo = Repositories.userRepo()
 
   private val emailConfig = EmailConfig()
-  private val mailer = new Mailer(emailConfig)
+  import com.github.daddykotex.courier.cats.CatsMailerIO._
+  private val mailer = new Mailer[IO](emailConfig)
 
-  override def stream(args: List[String], requestShutdown: IO[Unit]): Stream[IO, Nothing] = {
+  private val baseUrl = "http://localhost:8080"
+  private val endpoints = new Endpoints[IO]()
+
+  override def stream(args: List[String], requestShutdown: IO[Unit]): Stream[IO, ExitCode] = {
     BlazeBuilder[IO]
       .bindLocal(port)
-      .mountService(Web.app(xa, NowTimeProvider, userRepo, mailer))
+      .mountService(endpoints.app(baseUrl, xa, NowTimeProvider, userRepo, mailer))
       .withExecutionContext(pool)
       .serve
   }
