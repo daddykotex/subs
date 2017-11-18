@@ -70,7 +70,7 @@ object Server extends StreamApp[IO] {
   override def stream(args: List[String], requestShutdown: IO[Unit]): Stream[IO, ExitCode] = {
     BlazeBuilder[IO]
       .bindLocal(port)
-      .mountService(endpoints.app(baseUrl, xa, NowTimeProvider, userRepo, mailer))
+      .mountService(endpoints.app(baseUrl, xa, NowTimeProvider, SecureRandomProvider, userRepo, mailer))
       .withExecutionContext(pool)
       .serve
   }

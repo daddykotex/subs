@@ -1,0 +1,28 @@
+@import templates.html.main
+@(title: String, token: String)
+@main(title) {
+    <div class="container">
+      <form class="form-complete" method="POST" action="/complete">
+        <input type="hidden" id="token" name="token" value="@token" />
+
+        <div class="form-group">
+            <label for="name">Name:</label>
+            <input id="name" class="form-control" placeholder="Please enter your full name" required="" autofocus="" type="text" name="name" />
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input id="password" class="form-control" placeholder="Please enter your password" required="" autofocus="" type="password" name="password" />
+        </div>
+
+        <div class="form-group">
+            <label for="password_confirm">Password confirmation:</label>
+            <input
+                id="password_confirm" class="form-control" placeholder="Please confirm your password"
+                required="" autofocus="" type="password" name="password_confirm" />
+        </div>
+
+        <button class="btn btn-lg btn-primary btn-block" type="submit">Complete</button>
+      </form>
+    </div>
+}

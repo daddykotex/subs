@@ -3,8 +3,10 @@
 @main(title) {
 	<div class="container">
       <form class="form-signup" method="POST" action="/signup">
-        <label for="email" class="sr-only">Email address</label>
-        <input id="email" class="form-control" placeholder="Email address" required="" autofocus="" type="email" name="email">
+        <div class="form-group">
+            <label for="email">Email address:</label>
+            <input id="email" class="form-control" placeholder="Email address" required="" autofocus="" type="email" name="email"/>
+        </div>
         <button class="btn btn-lg btn-primary btn-block" type="submit">Sign up</button>
       </form>
     </div>
