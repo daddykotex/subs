@@ -2,7 +2,6 @@ package io.github.daddykotex.subs.utils
 
 import java.time.Instant
 import java.security.SecureRandom
-import java.time.temporal.ChronoUnit
 
 import org.reactormonk.{CryptoBits, PrivateKey}
 

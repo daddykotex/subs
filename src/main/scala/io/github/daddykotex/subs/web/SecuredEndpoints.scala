@@ -3,27 +3,21 @@ package io.github.daddykotex.subs.web
 import io.github.daddykotex.subs.utils._
 import io.github.daddykotex.subs.repositories.UserRepository
 
-import cats.effect.Sync
-import cats._
+import cats.effect._
 import cats.data._
 import cats.implicits._
 
 import doobie._
-import doobie.free.connection
 import doobie.implicits._
 
 import org.http4s._
 import org.http4s.twirl._
 import org.http4s.dsl.Http4sDsl
-import org.http4s.dsl.io._
 import org.http4s.headers.Location
 import org.http4s.HttpService
-import org.http4s.implicits._
 import org.http4s.server._
 
-import org.log4s.getLogger
-
-class SecuredEndpoints[F[_]: Sync] extends Http4sDsl[F] {
+class SecuredEndpoints[F[_]: Effect] extends Http4sDsl[F] {
   import UserRepository.VerifiedUser
 
   def build(
@@ -56,15 +50,16 @@ class SecuredEndpoints[F[_]: Sync] extends Http4sDsl[F] {
         }
       }
 
-    val onFailure: AuthedService[F, String] = Kleisli(
+    val onFailure: AuthedService[String, F] = Kleisli(
       authReq => OptionT.liftF(SeeOther(Location(authReq.req.uri.copy(path = "/signin")))))
-    val middleware: AuthMiddleware[F, VerifiedUser] = AuthMiddleware(authUser, onFailure)
 
-    val authedService: AuthedService[F, VerifiedUser] =
-      AuthedService[F, VerifiedUser] {
+    val authedService: AuthedService[VerifiedUser, F] =
+      AuthedService[VerifiedUser, F] {
         case GET -> Root as user =>
           Ok(html.home("Welcome", Some(user.email)))
       }
+
+    val middleware: AuthMiddleware[F, VerifiedUser] = AuthMiddleware(authUser, onFailure)
 
     middleware(authedService)
   }

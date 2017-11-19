@@ -1,13 +1,12 @@
 package io.github.daddykotex.subs.web
 
-import com.github.daddykotex.courier.addr
-import com.github.daddykotex.courier.{Multipart}
+import com.github.daddykotex.courier.{addr, Multipart}
 
 import io.github.daddykotex.subs.{Mailer => SMailer}
 import io.github.daddykotex.subs.utils._
 import io.github.daddykotex.subs.repositories.UserRepository
 
-import cats._, cats.effect._, cats.implicits._, cats.data._
+import cats.effect._, cats.implicits._
 import doobie._
 import doobie.free.connection
 import doobie.implicits._
@@ -15,13 +14,12 @@ import org.http4s._
 import org.http4s.twirl._
 import org.http4s.dsl.Http4sDsl
 import org.http4s.dsl.io._
-import org.http4s.implicits._
 import org.http4s.headers.Location
 import org.http4s.HttpService
 
 import org.log4s.getLogger
 
-class AuthEndpoints[F[_]: Sync] extends Http4sDsl[F] {
+class AuthEndpoints[F[_]: Effect] extends Http4sDsl[F] {
   import AuthForms._
 
   private[this] val log = getLogger
@@ -115,11 +113,11 @@ class AuthEndpoints[F[_]: Sync] extends Http4sDsl[F] {
 
 private object TokenQueryParamMatcher extends QueryParamDecoderMatcher[String]("token")
 
-private object AuthForms {
+object AuthForms {
   private val invalidForm = InvalidMessageBodyFailure("Form submission is invalid")
   case class SignUpForm(email: String)
   object SignUpForm {
-    implicit def signupFormDecoder[F[_]: Sync](
+    implicit def signupFormDecoder[F[_]: Effect](
         implicit original: EntityDecoder[F, UrlForm]): EntityDecoder[F, SignUpForm] =
       original.flatMapR[SignUpForm] {
         _.getFirst("email") match {
@@ -131,7 +129,7 @@ private object AuthForms {
 
   case class CompleteForm(token: String, name: String, password: String)
   object CompleteForm {
-    implicit def completeFormDecoder[F[_]: Sync](
+    implicit def completeFormDecoder[F[_]: Effect](
         implicit original: EntityDecoder[F, UrlForm]): EntityDecoder[F, CompleteForm] =
       original.flatMapR[CompleteForm] { uf =>
         (
@@ -151,7 +149,7 @@ private object AuthForms {
 
   case class SignInForm(email: String, password: String)
   object SignInForm {
-    implicit def signInFormDecoder[F[_]: Sync](
+    implicit def signInFormDecoder[F[_]: Effect](
         implicit original: EntityDecoder[F, UrlForm]): EntityDecoder[F, SignInForm] =
       original.flatMapR[SignInForm] { uf =>
         (

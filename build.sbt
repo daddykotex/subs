@@ -5,15 +5,15 @@ enablePlugins(SbtTwirl)
 organization := "io.github.daddykotex"
 name := "subs"
 version := "0.0.1-SNAPSHOT"
-scalaVersion := "2.12.3"
+scalaVersion := "2.12.4"
 
 scalacOptions ++= ScalacOptions.All
 // TODO: Try to figure out a way to keep the warn-unused:imports
 // scalacOptions in (Compile, TwirlKeys.sourceEncoding) ~= (_ filterNot (_ == "-Ywarn-unused:imports"))
 // scalacOptions in (Compile, TwirlKeys.compileTemplates) ~= (_ filterNot (_ == "-Ywarn-unused:imports"))
 
-val Http4sVersion = "0.18.0-M4"
-val DoobieVersion = "0.5.0-M8"
+val Http4sVersion = "0.18.0-M5"
+val DoobieVersion = "0.5.0-M9"
 val CourierVersion = "1.0.0"
 
 scalafmtOnCompile := true
@@ -28,7 +28,6 @@ libraryDependencies ++= Seq(
   "org.tpolecat"          %% "doobie-postgres"     % DoobieVersion,
   "org.tpolecat"          %% "doobie-specs2"       % DoobieVersion,
   "com.github.daddykotex" %% "courier-core"        % CourierVersion,
-  "com.github.daddykotex" %% "courier-for-cats"    % CourierVersion,
   "org.reactormonk"       %% "cryptobits"          % "1.1",
   "org.postgresql"        % "postgresql"           % "42.1.4",
   "ch.qos.logback"        % "logback-classic"      % "1.2.1"

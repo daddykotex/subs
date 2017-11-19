@@ -10,9 +10,10 @@ import fs2.Stream
 import io.github.daddykotex.subs.repositories.UserRepository
 import io.github.daddykotex.subs.web._
 import io.github.daddykotex.subs.utils._
+import com.github.daddykotex.courier.MailerIO
 
 import org.http4s.util.StreamApp
-import org.http4s.util.StreamApp.ExitCode
+import org.http4s.util.ExitCode
 import org.http4s.server.blaze.BlazeBuilder
 
 import scala.util.Properties.envOrNone
@@ -72,7 +73,7 @@ object Server extends StreamApp[IO] {
   private val userRepo = UserRepository.userRepo()
 
   private val emailConfig = EmailConfig()
-  import com.github.daddykotex.courier.cats.CatsMailerIO._
+  import CatsMailerIO._
   private val mailer = new Mailer[IO](emailConfig)
 
   private val cookieConfig = CookieConfig()
@@ -93,5 +94,11 @@ object Server extends StreamApp[IO] {
       .mountService(authEndpoint)
       .withExecutionContext(pool)
       .serve
+  }
+}
+
+object CatsMailerIO {
+  implicit val catsMailerIO: MailerIO[IO] = new MailerIO[IO] {
+    def run(f: => Unit): IO[Unit] = IO { f }
   }
 }
