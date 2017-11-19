@@ -111,6 +111,9 @@ class Endpoints[F[_]: Sync] extends Http4sDsl[F] {
 
     case GET -> Root / "signin" =>
       Ok(html.signin("Sign in"))
+
+    case GET -> Root =>
+      Ok(html.home("Welcome", None))
   }
 }
 

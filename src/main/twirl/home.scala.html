@@ -1,0 +1,10 @@
+@import templates.html.main
+@import templates.html.menu
+@(title: String, maybeUser: Option[String])
+@main(title) {
+    @menu(maybeUser) {
+        <div class="container">
+            <h1>Hello, world!</h1>
+        </div>
+    }
+}
