@@ -19,6 +19,10 @@ import org.http4s.HttpService
 
 import org.log4s.getLogger
 
+import tsec.common._
+import tsec.passwordhashers._
+import tsec.passwordhashers.imports._
+
 class AuthEndpoints[F[_]: Effect] extends Http4sDsl[F] {
   import AuthForms._
 
@@ -69,9 +73,10 @@ class AuthEndpoints[F[_]: Effect] extends Http4sDsl[F] {
           maybeUser <- userRepository.fetchUnverifiedUser(cForm.token)
           res <- maybeUser
             .map { uu =>
+              val pw = cForm.password.hashPassword[SCrypt]
               for {
                 _ <- userRepository
-                  .insertVerififedUser(uu.email, cForm.password, cForm.name, "users") //TODO hash password
+                  .insertVerififedUser(uu.email, pw, cForm.name, "users")
                 _ <- userRepository.removeUnverifiedUser(uu.email)
               } yield SeeOther(Location(request.uri.copy(path = "/signin?success")))
             }
@@ -94,7 +99,7 @@ class AuthEndpoints[F[_]: Effect] extends Http4sDsl[F] {
       request.decode[SignInForm] { signinForm =>
         (userRepository.fetchVerifiedUser(signinForm.email) map { maybeUser =>
           maybeUser
-            .filter(_.password == signinForm.password)
+            .filter(u => signinForm.password.checkWithHash[SCrypt](u.password))
             .map { user =>
               val cookieValue = cs.sign(user.id.toString, tp)
               SeeOther(Location(request.uri.copy(path = "/")))

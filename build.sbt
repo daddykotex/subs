@@ -12,9 +12,12 @@ scalacOptions ++= ScalacOptions.All
 // scalacOptions in (Compile, TwirlKeys.sourceEncoding) ~= (_ filterNot (_ == "-Ywarn-unused:imports"))
 // scalacOptions in (Compile, TwirlKeys.compileTemplates) ~= (_ filterNot (_ == "-Ywarn-unused:imports"))
 
+resolvers += "jmcardon at bintray" at "https://dl.bintray.com/jmcardon/tsec"
+
 val Http4sVersion = "0.18.0-M5"
 val DoobieVersion = "0.5.0-M9"
 val CourierVersion = "1.0.0"
+val TSecVersion = "0.0.1-M5"
 
 scalafmtOnCompile := true
 
@@ -28,6 +31,7 @@ libraryDependencies ++= Seq(
   "org.tpolecat"          %% "doobie-postgres"     % DoobieVersion,
   "org.tpolecat"          %% "doobie-specs2"       % DoobieVersion,
   "com.github.daddykotex" %% "courier-core"        % CourierVersion,
+  "io.github.jmcardon"    %% "tsec-password"       % TSecVersion,
   "org.reactormonk"       %% "cryptobits"          % "1.1",
   "org.postgresql"        % "postgresql"           % "42.1.4",
   "ch.qos.logback"        % "logback-classic"      % "1.2.1"

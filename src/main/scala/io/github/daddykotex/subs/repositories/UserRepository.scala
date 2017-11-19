@@ -6,6 +6,8 @@ import java.time.temporal.ChronoUnit
 import doobie._
 import doobie.implicits._
 
+import tsec.passwordhashers.imports._
+
 sealed trait UserRepository {
   import UserRepository.{UnverifiedUser, VerifiedUser}
 
@@ -13,13 +15,13 @@ sealed trait UserRepository {
   def insertUnverifiedUser(email: String, ts: Instant, token: String): ConnectionIO[Int]
   def removeUnverifiedUser(email: String): ConnectionIO[Int]
   def fetchUnverifiedUser(token: String): ConnectionIO[Option[UnverifiedUser]]
-  def insertVerififedUser(email: String, password: String, name: String, roles: String): ConnectionIO[Int]
+  def insertVerififedUser(email: String, password: SCrypt, name: String, roles: String): ConnectionIO[Int]
   def fetchVerifiedUser(email: String): ConnectionIO[Option[VerifiedUser]]
   def fetchVerifiedUser(id: Long): ConnectionIO[Option[VerifiedUser]]
 }
 
 object UserRepository {
-  case class VerifiedUser(id: Long, email: String, password: String, name: String, roles: String)
+  case class VerifiedUser(id: Long, email: String, password: SCrypt, name: String, roles: String)
   case class UnverifiedUser(email: String, signupDatetime: Instant, token: String) {
     def hasNotExpired(time: Instant): Boolean =
       ChronoUnit.DAYS.between(time, this.signupDatetime) < 7
@@ -51,7 +53,7 @@ object UserRepository {
         SELECT email, signup_datetime, token FROM unverified_users WHERE token = $token
       """.query[UnverifiedUser].option
 
-    override def insertVerififedUser(email: String, password: String, name: String, roles: String): ConnectionIO[Int] =
+    override def insertVerififedUser(email: String, password: SCrypt, name: String, roles: String): ConnectionIO[Int] =
       sql"""
         INSERT INTO verified_users(email, password, name, roles) VALUES($email, $password, $name, $roles)
       """.update.run
@@ -76,4 +78,10 @@ private object DoobieMetas {
       jsqlTs => Instant.ofEpochMilli(jsqlTs.getTime),
       instant => new Timestamp(instant.toEpochMilli)
     )
+
+  // SCrypt is a String: https://github.com/jmcardon/tsec/issues/55
+  implicit val scryptMeta: Meta[SCrypt] =
+    Meta[String].asInstanceOf[Meta[SCrypt]]
+  //TODO
+  //SCrypt.is.subst(Meta[String])
 }
