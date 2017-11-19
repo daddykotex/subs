@@ -1,18 +1,13 @@
-package io.github.daddykotex.subs
-
-import java.time.Instant
-import java.security.SecureRandom
-import java.time.temporal.ChronoUnit
+package io.github.daddykotex.subs.web
 
 import com.github.daddykotex.courier.addr
 import com.github.daddykotex.courier.{Multipart}
 
 import io.github.daddykotex.subs.{Mailer => SMailer}
+import io.github.daddykotex.subs.utils._
+import io.github.daddykotex.subs.repositories.UserRepository
 
-import cats.effect.Sync
-import cats._
-import cats.data._
-import cats.implicits._
+import cats._, cats.effect._, cats.implicits._, cats.data._
 import doobie._
 import doobie.free.connection
 import doobie.implicits._
@@ -26,13 +21,15 @@ import org.http4s.HttpService
 
 import org.log4s.getLogger
 
-class Endpoints[F[_]: Sync] extends Http4sDsl[F] {
-  import Forms._
+class AuthEndpoints[F[_]: Sync] extends Http4sDsl[F] {
+  import AuthForms._
 
   private[this] val log = getLogger
 
-  def app(
-      baseUrl: String, //TODO using something else than a String
+  def build(
+      baseUrl: String,
+      cookieName: String,
+      cs: CookieSigner[String],
       xa: Transactor[F],
       tp: TimeProvider,
       rp: RandomProvider,
@@ -101,7 +98,9 @@ class Endpoints[F[_]: Sync] extends Http4sDsl[F] {
           maybeUser
             .filter(_.password == signinForm.password)
             .map { user =>
+              val cookieValue = cs.sign(user.id.toString, tp)
               SeeOther(Location(request.uri.copy(path = "/")))
+                .map(_.addCookie(Cookie(cookieName, cookieValue)))
             }
             .getOrElse {
               SeeOther(Location(request.uri.copy(path = "/signin?error=invalidusernamepassword")))
@@ -111,15 +110,12 @@ class Endpoints[F[_]: Sync] extends Http4sDsl[F] {
 
     case GET -> Root / "signin" =>
       Ok(html.signin("Sign in"))
-
-    case GET -> Root =>
-      Ok(html.home("Welcome", None))
   }
 }
 
 private object TokenQueryParamMatcher extends QueryParamDecoderMatcher[String]("token")
 
-object Forms {
+private object AuthForms {
   private val invalidForm = InvalidMessageBodyFailure("Form submission is invalid")
   case class SignUpForm(email: String)
   object SignUpForm {
@@ -169,23 +165,4 @@ object Forms {
         }
       }
   }
-}
-
-trait TimeProvider extends Function0[Instant]
-object NowTimeProvider extends TimeProvider {
-  def apply(): Instant = Instant.now()
-}
-
-trait RandomProvider extends Function1[Int, String]
-object SecureRandomProvider extends RandomProvider {
-  private val alphaNumeric = ('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9')
-  private val random = new SecureRandom()
-  private def gen(length: Int) = {
-    val buffer = Array.tabulate(length) { _ =>
-      alphaNumeric(random.nextInt(alphaNumeric.length))
-    }
-    new String(buffer)
-  }
-
-  def apply(length: Int): String = gen(length)
 }

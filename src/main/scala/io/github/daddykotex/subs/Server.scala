@@ -2,11 +2,14 @@ package io.github.daddykotex.subs
 
 import java.time.ZoneOffset
 import java.util.TimeZone
+import java.util.concurrent.Executors
 
 import cats.effect.IO
 import doobie.hikari._
 import fs2.Stream
-import java.util.concurrent.Executors
+import io.github.daddykotex.subs.repositories.UserRepository
+import io.github.daddykotex.subs.web._
+import io.github.daddykotex.subs.utils._
 
 import org.http4s.util.StreamApp
 import org.http4s.util.StreamApp.ExitCode
@@ -43,6 +46,14 @@ private object DBConfig {
     ) getOrElse { throw new IllegalArgumentException("Database environment variables are invalid.") }
 }
 
+private case class CookieConfig(signingKey: String, cookieName: String)
+private object CookieConfig {
+  def apply(): CookieConfig =
+    envOrNone("COOKIE_SIGNING_KEY")
+      .map(sk => CookieConfig(sk, "subs_auth_cookie"))
+      .getOrElse { throw new IllegalArgumentException("Cookie configuration environment variables are invalid.") }
+}
+
 object Server extends StreamApp[IO] {
   TimeZone.setDefault(TimeZone.getTimeZone(ZoneOffset.UTC.getId))
 
@@ -58,19 +69,28 @@ object Server extends StreamApp[IO] {
       }
     } yield t
   ).unsafeRunSync()
-  private val userRepo = Repositories.userRepo()
+  private val userRepo = UserRepository.userRepo()
 
   private val emailConfig = EmailConfig()
   import com.github.daddykotex.courier.cats.CatsMailerIO._
   private val mailer = new Mailer[IO](emailConfig)
 
+  private val cookieConfig = CookieConfig()
+
   private val baseUrl = "http://localhost:8080"
-  private val endpoints = new Endpoints[IO]()
+  private val tp = NowTimeProvider
+  private val rp = SecureRandomProvider
+  private val cs = new DefaultCookieSigner(cookieConfig.signingKey)
+
+  private val authEndpoint =
+    new AuthEndpoints[IO]().build(baseUrl, cookieConfig.cookieName, cs, xa, tp, rp, userRepo, mailer)
+  private val securedEndpoint = new SecuredEndpoints[IO]().build(cookieConfig.cookieName, cs, xa, userRepo)
 
   override def stream(args: List[String], requestShutdown: IO[Unit]): Stream[IO, ExitCode] = {
     BlazeBuilder[IO]
       .bindLocal(port)
-      .mountService(endpoints.app(baseUrl, xa, NowTimeProvider, SecureRandomProvider, userRepo, mailer))
+      .mountService(securedEndpoint)
+      .mountService(authEndpoint)
       .withExecutionContext(pool)
       .serve
   }

@@ -1,3 +1,5 @@
+addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.4")
+
 enablePlugins(SbtTwirl)
 
 organization := "io.github.daddykotex"
@@ -27,6 +29,7 @@ libraryDependencies ++= Seq(
   "org.tpolecat"          %% "doobie-specs2"       % DoobieVersion,
   "com.github.daddykotex" %% "courier-core"        % CourierVersion,
   "com.github.daddykotex" %% "courier-for-cats"    % CourierVersion,
+  "org.reactormonk"       %% "cryptobits"          % "1.1",
   "org.postgresql"        % "postgresql"           % "42.1.4",
   "ch.qos.logback"        % "logback-classic"      % "1.2.1"
 )

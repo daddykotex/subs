@@ -1,4 +1,4 @@
-package io.github.daddykotex.subs
+package io.github.daddykotex.subs.repositories
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -6,22 +6,25 @@ import java.time.temporal.ChronoUnit
 import doobie._
 import doobie.implicits._
 
-case class VerifiedUser(email: String, password: String, name: String, roles: String)
-case class UnverifiedUser(email: String, signupDatetime: Instant, token: String) {
-  def hasNotExpired(time: Instant): Boolean =
-    ChronoUnit.DAYS.between(time, this.signupDatetime) < 7
-}
-
 sealed trait UserRepository {
+  import UserRepository.{UnverifiedUser, VerifiedUser}
+
   def isEmailUsed(email: String): ConnectionIO[Boolean]
   def insertUnverifiedUser(email: String, ts: Instant, token: String): ConnectionIO[Int]
   def removeUnverifiedUser(email: String): ConnectionIO[Int]
   def fetchUnverifiedUser(token: String): ConnectionIO[Option[UnverifiedUser]]
   def insertVerififedUser(email: String, password: String, name: String, roles: String): ConnectionIO[Int]
   def fetchVerifiedUser(email: String): ConnectionIO[Option[VerifiedUser]]
+  def fetchVerifiedUser(id: Long): ConnectionIO[Option[VerifiedUser]]
 }
 
-object Repositories {
+object UserRepository {
+  case class VerifiedUser(id: Long, email: String, password: String, name: String, roles: String)
+  case class UnverifiedUser(email: String, signupDatetime: Instant, token: String) {
+    def hasNotExpired(time: Instant): Boolean =
+      ChronoUnit.DAYS.between(time, this.signupDatetime) < 7
+  }
+
   import DoobieMetas._
   def userRepo(): UserRepository = new UserRepository {
     override def isEmailUsed(email: String): ConnectionIO[Boolean] =
@@ -55,7 +58,12 @@ object Repositories {
 
     override def fetchVerifiedUser(email: String): ConnectionIO[Option[VerifiedUser]] =
       sql"""
-        SELECT email, password, name, roles FROM verified_users WHERE email = $email
+        SELECT id, email, password, name, roles FROM verified_users WHERE email = $email
+      """.query[VerifiedUser].option
+
+    override def fetchVerifiedUser(id: Long): ConnectionIO[Option[VerifiedUser]] =
+      sql"""
+        SELECT id, email, password, name, roles FROM verified_users WHERE id = $id
       """.query[VerifiedUser].option
   }
 }
