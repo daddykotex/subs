@@ -85,12 +85,16 @@ object Server extends StreamApp[IO] {
 
   private val authEndpoint =
     new AuthEndpoints[IO]().build(baseUrl, cookieConfig.cookieName, cs, xa, tp, rp, userRepo, mailer)
-  private val securedEndpoint = new SecuredEndpoints[IO]().build(cookieConfig.cookieName, cs, xa, userRepo)
+
+  private val securedWrapper = new SecuredEndpointWrapper[IO]().build(cookieConfig.cookieName, cs, xa, userRepo)(_)
+  private val homeEndpoint = securedWrapper(new HomeEndpoints[IO]().secureService)
+  private val gamesEndpoint = securedWrapper(new GamesEndpoints[IO]().secureService)
 
   override def stream(args: List[String], requestShutdown: IO[Unit]): Stream[IO, ExitCode] = {
     BlazeBuilder[IO]
       .bindLocal(port)
-      .mountService(securedEndpoint)
+      .mountService(homeEndpoint)
+      .mountService(gamesEndpoint, "/games")
       .mountService(authEndpoint)
       .withExecutionContext(pool)
       .serve

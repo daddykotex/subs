@@ -19,7 +19,6 @@ import org.http4s.HttpService
 
 import org.log4s.getLogger
 
-import tsec.common._
 import tsec.passwordhashers._
 import tsec.passwordhashers.imports._
 

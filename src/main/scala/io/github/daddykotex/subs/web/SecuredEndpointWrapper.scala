@@ -11,13 +11,12 @@ import doobie._
 import doobie.implicits._
 
 import org.http4s._
-import org.http4s.twirl._
 import org.http4s.dsl.Http4sDsl
 import org.http4s.headers.Location
 import org.http4s.HttpService
 import org.http4s.server._
 
-class SecuredEndpoints[F[_]: Effect] extends Http4sDsl[F] {
+class SecuredEndpointWrapper[F[_]: Effect] extends Http4sDsl[F] {
   import UserRepository.VerifiedUser
 
   def build(
@@ -25,7 +24,7 @@ class SecuredEndpoints[F[_]: Effect] extends Http4sDsl[F] {
       cs: CookieSigner[String],
       xa: Transactor[F],
       userRepository: UserRepository
-  ): HttpService[F] = {
+  )(route: AuthedService[VerifiedUser, F]): HttpService[F] = {
     val findUser: Kleisli[F, Long, Either[String, VerifiedUser]] = Kleisli { id =>
       userRepository
         .fetchVerifiedUser(id)
@@ -53,14 +52,8 @@ class SecuredEndpoints[F[_]: Effect] extends Http4sDsl[F] {
     val onFailure: AuthedService[String, F] = Kleisli(
       authReq => OptionT.liftF(SeeOther(Location(authReq.req.uri.copy(path = "/signin")))))
 
-    val authedService: AuthedService[VerifiedUser, F] =
-      AuthedService[VerifiedUser, F] {
-        case GET -> Root as user =>
-          Ok(html.home("Welcome", Some(user.email)))
-      }
-
     val middleware: AuthMiddleware[F, VerifiedUser] = AuthMiddleware(authUser, onFailure)
 
-    middleware(authedService)
+    middleware(route)
   }
 }
