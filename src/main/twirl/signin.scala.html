@@ -2,18 +2,24 @@
 @(title: String)
 @main(title) {
     <div class="container">
-      <form class="form-signup" method="POST" action="/signin">
-        <div class="form-group">
-            <label for="signin-email">Email address:</label>
-            <input id="signin-email" class="form-control" placeholder="Email address" required="" autofocus="" type="email" name="email"/>
-        </div>
+        <div class="form-signup">
+            <form method="POST" action="/signin">
+                <div class="form-group">
+                    <label for="signin-email">Email address:</label>
+                    <input id="signin-email" class="form-control" placeholder="Email address" required="" autofocus="" type="email" name="email"/>
+                </div>
 
-        <div class="form-group">
-            <label for="signin-password">Password:</label>
-            <input id="signin-password" class="form-control" placeholder="Please enter your password" required="" type="password" name="password" />
-        </div>
+                <div class="form-group">
+                    <label for="signin-password">Password:</label>
+                    <input id="signin-password" class="form-control" placeholder="Please enter your password" required="" type="password" name="password" />
+                </div>
 
-        <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
-      </form>
+                <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
+            </form>
+            <hr />
+            <div class="text-right">
+                <a href="/signup">Sign up</a>
+            </div>
+        </div>
     </div>
 }

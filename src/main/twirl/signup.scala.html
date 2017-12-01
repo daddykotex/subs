@@ -2,12 +2,18 @@
 @(title: String)
 @main(title) {
 	<div class="container">
-      <form class="form-signup" method="POST" action="/signup">
-        <div class="form-group">
-            <label for="email">Email address:</label>
-            <input id="email" class="form-control" placeholder="Email address" required="" autofocus="" type="email" name="email"/>
+        <div class="form-signup">
+            <form method="POST" action="/signup">
+                <div class="form-group">
+                    <label for="email">Email address:</label>
+                    <input id="email" class="form-control" placeholder="Email address" required="" autofocus="" type="email" name="email"/>
+                </div>
+                <button class="btn btn-lg btn-primary btn-block" type="submit">Sign up</button>
+            </form>
+            <hr />
+            <div class="text-right">
+                <a href="/signin">Sign in</a>
+            </div>
         </div>
-        <button class="btn btn-lg btn-primary btn-block" type="submit">Sign up</button>
-      </form>
     </div>
 }
