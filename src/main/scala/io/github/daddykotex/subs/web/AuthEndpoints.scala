@@ -111,6 +111,10 @@ class AuthEndpoints[F[_]: Effect] extends Http4sDsl[F] {
         }).transact(xa).flatten
       }
 
+    case request @ POST -> Root / "signout" =>
+      SeeOther(Location(request.uri.copy(path = "/signin?msg=signout")))
+        .map(_.removeCookie(cookieName))
+
     case GET -> Root / "signin" =>
       Ok(html.signin("Sign in"))
   }
