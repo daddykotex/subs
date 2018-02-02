@@ -14,14 +14,16 @@ scalacOptions ++= ScalacOptions.All
 
 resolvers += "jmcardon at bintray" at "https://dl.bintray.com/jmcardon/tsec"
 
-val Http4sVersion = "0.18.0-M5"
-val DoobieVersion = "0.5.0-M9"
+val CatsVersion = "1.0.1"
+val Http4sVersion = "0.18.0"
+val DoobieVersion = "0.5.0-M14"
 val CourierVersion = "1.0.0"
 val TSecVersion = "0.0.1-M5"
 
 scalafmtOnCompile := true
 
 libraryDependencies ++= Seq(
+  "org.typelevel"         %% "cats-core"           % CatsVersion,
   "org.http4s"            %% "http4s-blaze-server" % Http4sVersion,
   "org.http4s"            %% "http4s-circe"        % Http4sVersion,
   "org.http4s"            %% "http4s-dsl"          % Http4sVersion,

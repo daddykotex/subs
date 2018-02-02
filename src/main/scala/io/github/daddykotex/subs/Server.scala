@@ -7,13 +7,12 @@ import java.util.concurrent.Executors
 import cats.effect.IO
 import doobie.hikari._
 import fs2.Stream
+import fs2.StreamApp, StreamApp.ExitCode
 import io.github.daddykotex.subs.repositories.UserRepository
 import io.github.daddykotex.subs.web._
 import io.github.daddykotex.subs.utils._
 import com.github.daddykotex.courier.MailerIO
 
-import org.http4s.util.StreamApp
-import org.http4s.util.ExitCode
 import org.http4s.server.blaze.BlazeBuilder
 
 import scala.util.Properties.envOrNone
@@ -61,12 +60,13 @@ object Server extends StreamApp[IO] {
   private val port: Int = envOrNone("HTTP_PORT") map (_.toInt) getOrElse 8080
   private val dbConfig = DBConfig()
 
-  private val pool: ExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
+  private implicit val pool: ExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
   private val xa = (
     for {
-      t <- HikariTransactor[IO]("org.postgresql.Driver", dbConfig.url, dbConfig.user, dbConfig.password)
+      t <- HikariTransactor
+        .newHikariTransactor[IO]("org.postgresql.Driver", dbConfig.url, dbConfig.user, dbConfig.password)
       _ <- t.configure { hx =>
-        hx setMaximumPoolSize 4
+        IO { hx.setMaximumPoolSize(4) }
       }
     } yield t
   ).unsafeRunSync()
