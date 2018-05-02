@@ -68,19 +68,24 @@ class AuthEndpoints[F[_]: Effect] extends Http4sDsl[F] {
 
     case request @ POST -> Root / "complete" =>
       request.decode[CompleteForm] { cForm =>
-        (for {
-          maybeUser <- userRepository.fetchUnverifiedUser(cForm.token)
-          res <- maybeUser
-            .map { uu =>
-              val pw = cForm.password.hashPassword[SCrypt]
-              for {
-                _ <- userRepository
-                  .insertVerififedUser(uu.email, pw, cForm.name, "users")
-                _ <- userRepository.removeUnverifiedUser(uu.email)
-              } yield SeeOther(Location(request.uri.copy(path = "/signin?success")))
-            }
-            .getOrElse { connection.delay(SeeOther(Location(request.uri.copy(path = "/signup?error=invalidtoken")))) }
-        } yield res).transact(xa).flatten
+        def complete(pw: PasswordHash[SCrypt]): F[Response[F]] =
+          (for {
+            maybeUser <- userRepository.fetchUnverifiedUser(cForm.token)
+            res <- maybeUser
+              .map { uu =>
+                for {
+                  _ <- userRepository
+                    .insertVerififedUser(uu.email, pw, cForm.name, "users")
+                  _ <- userRepository.removeUnverifiedUser(uu.email)
+                } yield SeeOther(Location(request.uri.copy(path = "/signin?success")))
+              }
+              .getOrElse { connection.delay(SeeOther(Location(request.uri.copy(path = "/signup?error=invalidtoken")))) }
+          } yield res).transact(xa).flatten
+
+        for {
+          pw <- SCrypt.hashpw[F](cForm.password)
+          res <- complete(pw)
+        } yield res
       }
 
     case request @ GET -> Root / "verify" :? TokenQueryParamMatcher(token) =>
@@ -98,7 +103,7 @@ class AuthEndpoints[F[_]: Effect] extends Http4sDsl[F] {
       request.decode[SignInForm] { signinForm =>
         (userRepository.fetchVerifiedUser(signinForm.email) map { maybeUser =>
           maybeUser
-            .filter(u => signinForm.password.checkWithHash[SCrypt](u.password))
+            .filter(u => SCrypt.checkpwUnsafe(signinForm.password, u.password))
             .map { user =>
               val cookieValue = cs.sign(user.id.toString, tp)
               SeeOther(Location(request.uri.copy(path = "/")))

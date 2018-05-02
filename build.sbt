@@ -18,7 +18,7 @@ val CatsVersion = "1.0.1"
 val Http4sVersion = "0.18.0"
 val DoobieVersion = "0.5.0-M14"
 val CourierVersion = "1.0.0"
-val TSecVersion = "0.0.1-M5"
+val TSecVersion = "0.0.1-M7"
 
 scalafmtOnCompile := true
 
