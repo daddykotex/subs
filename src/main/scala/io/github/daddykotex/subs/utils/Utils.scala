@@ -38,3 +38,7 @@ class DefaultCookieSigner(key: String) extends CookieSigner[String] {
     crypto.validateSignedToken(encrypted).toRight("Cookie invalid")
 
 }
+
+object FormUtils {
+  def invalidForm(msg: String = "Form submission is invalid") = org.http4s.InvalidMessageBodyFailure(msg)
+}

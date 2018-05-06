@@ -1,0 +1,18 @@
+@import templates.html.main
+@import templates.html.menu
+@import io.github.daddykotex.subs.repositories.TeamRepository.TeamWithId
+@(team: TeamWithId, maybeUser: Option[String])
+@main(team.name) {
+    @menu(maybeUser) {
+      <div class="container">
+        <div class="row">
+          <div class="col-xs">
+            <a href="/teams/create" class="btn btn-primary">
+              Create
+            </a>
+          </div>
+        </div>
+        <hr />
+      </div>
+    }
+}

@@ -127,7 +127,6 @@ class AuthEndpoints[F[_]: Effect] extends Http4sDsl[F] {
 private object TokenQueryParamMatcher extends QueryParamDecoderMatcher[String]("token")
 
 object AuthForms {
-  private val invalidForm = InvalidMessageBodyFailure("Form submission is invalid")
   case class SignUpForm(email: String)
   object SignUpForm {
     implicit def signupFormDecoder[F[_]: Effect](
@@ -135,7 +134,7 @@ object AuthForms {
       original.flatMapR[SignUpForm] {
         _.getFirst("email") match {
           case Some(email) => DecodeResult.success(SignUpForm(email))
-          case _ => DecodeResult.failure(invalidForm)
+          case _ => DecodeResult.failure(FormUtils.invalidForm())
         }
       }
   }
@@ -155,7 +154,7 @@ object AuthForms {
           } yield CompleteForm(token, name, password)
         ) match {
           case Some(x) => DecodeResult.success(x)
-          case None => DecodeResult.failure(invalidForm)
+          case None => DecodeResult.failure(FormUtils.invalidForm())
         }
       }
   }
@@ -172,7 +171,7 @@ object AuthForms {
           } yield SignInForm(email, password)
         ) match {
           case Some(x) => DecodeResult.success(x)
-          case None => DecodeResult.failure(invalidForm)
+          case None => DecodeResult.failure(FormUtils.invalidForm())
         }
       }
   }

@@ -1,0 +1,21 @@
+@import templates.html.main
+@import templates.html.menu
+@(title: String, maybeUser: Option[String])
+@main(title) {
+    @menu(maybeUser) {
+      <div class="container">
+        <div class="row">
+          <div class="col-xs">
+            <form method="POST" action="/teams/create">
+              <div class="form-group">
+                <label for="teaminputname">Name</label>
+                <input name="name" type="text" class="form-control" id="teaminputname" placeholder="Enter your team's Name">
+              </div>
+                <button type="submit" class="btn btn-primary">Submit</button>
+            </form>
+          </div>
+        </div>
+        <hr />
+      </div>
+    }
+}

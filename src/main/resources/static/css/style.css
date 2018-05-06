@@ -1,8 +1,11 @@
 body {
-    padding: 3.5em;
+    padding-top: 4em;
 }
 .form-signup, .form-complete {
     max-width: 330px;
     padding: 15px;
     margin: 0 auto;
+}
+.teams-container .listing {
+  padding-top: 0.5em;
 }

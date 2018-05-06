@@ -1,0 +1,39 @@
+@import templates.html.main
+@import templates.html.menu
+@import io.github.daddykotex.subs.repositories.TeamRepository.TeamWithId
+
+@(title: String, teams: List[TeamWithId], maybeUser: Option[String])
+@main(title) {
+    @menu(maybeUser) {
+      <div class="container teams-container">
+        <div class="row">
+          <div class="col-xs">
+            <a href="/teams/create" class="btn btn-primary">
+              Create
+            </a>
+          </div>
+        </div>
+
+        <div class="row listing">
+          <div class="col-xs">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col">Name</th>
+                </tr>
+              </thead>
+              <tbody>
+                @teams.map { team =>
+                  <tr>
+                    <th scope="row"><a href="/teams/@team.id">@team.id</a></th>
+                    <td>@team.name</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    }
+}
