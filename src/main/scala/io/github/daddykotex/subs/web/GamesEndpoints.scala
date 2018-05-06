@@ -14,6 +14,6 @@ class GamesEndpoints[F[_]: Effect] extends Http4sDsl[F] {
   val secureService: AuthedService[VerifiedUser, F] =
     AuthedService[VerifiedUser, F] {
       case GET -> Root as user =>
-        Ok(html.home("Welcome", Some(user.email)))
+        Ok(html.home("Your games", Some(user.email)))
     }
 }
