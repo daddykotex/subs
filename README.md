@@ -20,10 +20,20 @@ export DB_PASS=...
 export DB_JDBC_URL="jdbc:postgresql://$DB_HOST:$DB_PORT/$DB_NAME"
 ```
 
+During development, I run the database with docker:
+```
+docker run -d -e POSTGRES_PASSWORD=postgres --name postgres postgres:9.6
+
+```
+
 ### Connection
 
 I use docker to run psql:
 ```
+# local container
+docker run --rm -it --net container:postgres --entrypoint=psql postgres:9.6 "postgres://$DB_USER:$DB_PASS@$DB_HOST/$DB_NAME"
+
+#remote
 docker run --rm -it --entrypoint=psql postgres:9.6 "postgres://$DB_USER:$DB_PASS@$DB_HOST/$DB_NAME"
 ```
 
