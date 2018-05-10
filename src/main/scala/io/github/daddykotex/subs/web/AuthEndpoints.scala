@@ -62,7 +62,7 @@ class AuthEndpoints[F[_]: Effect] extends Http4sDsl[F] {
         for {
           inserted <- dbOp.transact(xa)
           _ <- if (inserted) mailer.send(emailContent) else ().pure[F]
-          resp <- SeeOther(Location(request.uri.copy(path = "/signup")))
+          resp <- SeeOther(Location(request.uri.copy(path = "/signup?success=verify")))
         } yield resp
       }
 
@@ -77,7 +77,7 @@ class AuthEndpoints[F[_]: Effect] extends Http4sDsl[F] {
                   _ <- userRepository
                     .insertVerififedUser(uu.email, pw, cForm.name, "users")
                   _ <- userRepository.removeUnverifiedUser(uu.email)
-                } yield SeeOther(Location(request.uri.copy(path = "/signin?success")))
+                } yield SeeOther(Location(request.uri.copy(path = "/signin?success=welcome")))
               }
               .getOrElse { connection.delay(SeeOther(Location(request.uri.copy(path = "/signup?error=invalidtoken")))) }
           } yield res).transact(xa).flatten
@@ -96,8 +96,8 @@ class AuthEndpoints[F[_]: Effect] extends Http4sDsl[F] {
           SeeOther(Location(request.uri.copy(path = "/signup?error=invalidtoken")))
       }
 
-    case GET -> Root / "signup" =>
-      Ok(html.signup("Sign up"))
+    case GET -> Root / "signup" :? SuccessParamMatcher(successMsg) =>
+      Ok(html.signup("Sign up", successMsg))
 
     case request @ POST -> Root / "signin" =>
       request.decode[SignInForm] { signinForm =>
@@ -125,6 +125,7 @@ class AuthEndpoints[F[_]: Effect] extends Http4sDsl[F] {
 }
 
 private object TokenQueryParamMatcher extends QueryParamDecoderMatcher[String]("token")
+private object SuccessParamMatcher extends OptionalQueryParamDecoderMatcher[String]("success")
 
 object AuthForms {
   case class SignUpForm(email: String)

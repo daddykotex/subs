@@ -1,8 +1,14 @@
 @import templates.html.main
-@(title: String)
+@(title: String, successMsg: Option[String])
 @main(title) {
 	<div class="container">
         <div class="form-signup">
+            @successMsg.map { msg =>
+            <div class="alert alert-success" role="alert">
+                @msg
+            </div>
+
+            }
             <form method="POST" action="/signup">
                 <div class="form-group">
                     <label for="email">Email address:</label>
