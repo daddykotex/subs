@@ -1,18 +1,36 @@
 @import templates.html.main
 @import templates.html.menu
 @import io.github.daddykotex.subs.repositories.TeamRepository.TeamWithId
-@(team: TeamWithId, maybeUser: Option[String])
+@(team: TeamWithId, players: List[String], maybeUser: Option[String])
 @main(team.name) {
     @menu(maybeUser) {
       <div class="container">
         <div class="row">
           <div class="col-xs">
-            <a href="/teams/create" class="btn btn-primary">
-              Create
+            <a href="/teams/@team.id/players/add" class="btn btn-primary">
+              Add a player
             </a>
           </div>
         </div>
-        <hr />
+
+        <div class="row listing">
+          <div class="col-xs">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th scope="col">Email</th>
+                </tr>
+              </thead>
+              <tbody>
+                @players.map { p =>
+                  <tr>
+                    <td>@p</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     }
 }

@@ -1,6 +1,7 @@
 package io.github.daddykotex.subs.web
 
 import io.github.daddykotex.subs.repositories._
+import io.github.daddykotex.subs.repositories.TeamRepository._
 import io.github.daddykotex.subs.utils._
 
 import cats.effect._, cats.implicits._
@@ -35,16 +36,41 @@ class TeamsEndpoints[F[_]: Effect] extends Http4sDsl[F] {
             .transact(xa)
             .flatMap(inserted => SeeOther(Location(authed.req.uri.copy(path = s"/teams/${inserted.id}"))))
         }
-      case GET -> Root / LongVar(teamId) as user =>
+      case GET -> Root / LongVar(teamId) / "players" / "add" as user =>
         TeamRepository
           .fetchTeam(teamId)
           .transact(xa)
           .flatMap {
             case Some(team) =>
-              Ok(html.one_team(team, Some(user.email)))
+              Ok(html.add_player_team(team, Some(user.email)))
             case None =>
               NotFound()
           }
+      case authed @ POST -> Root / LongVar(teamId) / "players" / "add" as _ =>
+        TeamRepository
+          .fetchTeam(teamId)
+          .transact(xa)
+          .flatMap {
+            case Some(team) =>
+              authed.req.decode[AddPlayerToTeam] { form =>
+                TeamRepository
+                  .insertPlayerInTeam(team.id, form.email)
+                  .transact(xa)
+                  .flatMap(_ => SeeOther(Location(authed.req.uri.copy(path = s"/teams/${team.id}"))))
+              }
+            case None =>
+              NotFound()
+          }
+      case GET -> Root / LongVar(teamId) as user =>
+        for {
+          maybeTeam <- TeamRepository.fetchTeam(teamId).transact(xa)
+          players <- maybeTeam
+            .map(t => TeamRepository.listTeamPlayers(t.id).transact(xa))
+            .getOrElse(List.empty[String].pure[F])
+          res <- maybeTeam
+            .map(t => Ok(html.one_team(t, players, Some(user.email))))
+            .getOrElse(NotFound())
+        } yield res
 
       case GET -> Root / "create" as user =>
         Ok(html.create_team("New team", Some(user.email)))
@@ -52,18 +78,28 @@ class TeamsEndpoints[F[_]: Effect] extends Http4sDsl[F] {
 }
 
 object TeamsForm {
-  final case class CreateTeamForm(name: String)
+  final case class CreateTeamForm(name: String) extends AnyVal
+  final case class AddPlayerToTeam(email: String) extends AnyVal
 
-  object CreateTeamForm {
-    implicit def createTeamFormDecoder[F[_]: Effect](
-        implicit original: EntityDecoder[F, UrlForm]): EntityDecoder[F, CreateTeamForm] =
-      original.flatMapR[CreateTeamForm] { uf =>
-        (
-          uf.getFirst("name").map(CreateTeamForm.apply)
-        ) match {
-          case Some(x) => DecodeResult.success(x)
-          case None => DecodeResult.failure(FormUtils.invalidForm())
-        }
+  implicit def addTeamPlayerFormDecoder[F[_]: Effect](
+      implicit original: EntityDecoder[F, UrlForm]): EntityDecoder[F, AddPlayerToTeam] =
+    original.flatMapR[AddPlayerToTeam] { uf =>
+      (
+        uf.getFirst("email").map(AddPlayerToTeam.apply)
+      ) match {
+        case Some(x) => DecodeResult.success(x)
+        case None => DecodeResult.failure(FormUtils.invalidForm())
       }
-  }
+    }
+
+  implicit def createTeamFormDecoder[F[_]: Effect](
+      implicit original: EntityDecoder[F, UrlForm]): EntityDecoder[F, CreateTeamForm] =
+    original.flatMapR[CreateTeamForm] { uf =>
+      (
+        uf.getFirst("name").map(CreateTeamForm.apply)
+      ) match {
+        case Some(x) => DecodeResult.success(x)
+        case None => DecodeResult.failure(FormUtils.invalidForm())
+      }
+    }
 }

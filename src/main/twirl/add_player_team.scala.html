@@ -1,0 +1,22 @@
+@import templates.html.main
+@import templates.html.menu
+@import io.github.daddykotex.subs.repositories.TeamRepository.TeamWithId
+@(team: TeamWithId, maybeUser: Option[String])
+@main(s"Add a player to ${team.name}") {
+    @menu(maybeUser) {
+      <div class="container">
+        <div class="row">
+          <div class="col-xs">
+            <form method="POST" action="/teams/@team.id/players/add">
+              <div class="form-group">
+                <label for="playeremail">Email</label>
+                <input name="email" type="email" class="form-control" id="playeremail" aria-describedby="emailHelp" placeholder="Enter an email address">
+              </div>
+                <button type="submit" class="btn btn-primary">Submit</button>
+            </form>
+          </div>
+        </div>
+        <hr />
+      </div>
+    }
+}
