@@ -34,7 +34,6 @@ class AuthEndpoints[F[_]: Effect] extends Http4sDsl[F] {
       xa: Transactor[F],
       tp: TimeProvider,
       rp: RandomProvider,
-      userRepository: UserRepository,
       mailer: SMailer[F]
   ): HttpService[F] = HttpService[F] {
     case request @ GET -> "static" /: path =>
@@ -52,9 +51,9 @@ class AuthEndpoints[F[_]: Effect] extends Http4sDsl[F] {
             .content(Multipart().html(emails.html.verify_email(s"$baseUrl/verify?token=$token").body))
         log.info(s"Processing signup for $email")
         val dbOp = for {
-          exists <- userRepository.isEmailUsed(email)
+          exists <- UserRepository.isEmailUsed(email)
           inserted <- if (!exists) {
-            userRepository.insertUnverifiedUser(email, tp(), token).map(_ => true)
+            UserRepository.insertUnverifiedUser(email, tp(), token).map(_ => true)
           } else {
             connection.delay(false)
           }
@@ -70,13 +69,13 @@ class AuthEndpoints[F[_]: Effect] extends Http4sDsl[F] {
       request.decode[CompleteForm] { cForm =>
         def complete(pw: PasswordHash[SCrypt]): F[Response[F]] =
           (for {
-            maybeUser <- userRepository.fetchUnverifiedUser(cForm.token)
+            maybeUser <- UserRepository.fetchUnverifiedUser(cForm.token)
             res <- maybeUser
               .map { uu =>
                 for {
-                  _ <- userRepository
+                  _ <- UserRepository
                     .insertVerififedUser(uu.email, pw, cForm.name, "users")
-                  _ <- userRepository.removeUnverifiedUser(uu.email)
+                  _ <- UserRepository.removeUnverifiedUser(uu.email)
                 } yield SeeOther(Location(request.uri.copy(path = "/signin?success=welcome")))
               }
               .getOrElse { connection.delay(SeeOther(Location(request.uri.copy(path = "/signup?error=invalidtoken")))) }
@@ -89,7 +88,7 @@ class AuthEndpoints[F[_]: Effect] extends Http4sDsl[F] {
       }
 
     case request @ GET -> Root / "verify" :? TokenQueryParamMatcher(token) =>
-      userRepository.fetchUnverifiedUser(token).transact(xa) flatMap {
+      UserRepository.fetchUnverifiedUser(token).transact(xa) flatMap {
         case Some(uu) if uu.hasNotExpired(tp()) =>
           Ok(html.complete("Complete your sign up", token))
         case None =>
@@ -101,7 +100,7 @@ class AuthEndpoints[F[_]: Effect] extends Http4sDsl[F] {
 
     case request @ POST -> Root / "signin" =>
       request.decode[SignInForm] { signinForm =>
-        (userRepository.fetchVerifiedUser(signinForm.email) map { maybeUser =>
+        (UserRepository.fetchVerifiedUser(signinForm.email) map { maybeUser =>
           maybeUser
             .filter(u => SCrypt.checkpwUnsafe(signinForm.password, u.password))
             .map { user =>

@@ -11,9 +11,11 @@ import fs2.StreamApp, StreamApp.ExitCode
 import io.github.daddykotex.subs.repositories.UserRepository
 import io.github.daddykotex.subs.web._
 import io.github.daddykotex.subs.utils._
+import org.http4s.Uri
 import com.github.daddykotex.courier.MailerIO
 
 import org.http4s.server.blaze.BlazeBuilder
+import org.http4s.client.blaze._
 
 import scala.util.Properties.envOrNone
 import scala.concurrent.ExecutionContext
@@ -32,6 +34,17 @@ private object EmailConfig {
         password <- envOrNone("SMTP_PASS")
       } yield EmailConfig(host, port, user, password)
     ) getOrElse { throw new IllegalArgumentException("SMTP environment variables are invalid.") }
+}
+private case class MailgunConfig(baseUri: Uri, key: String)
+private object MailgunConfig {
+  def apply(): MailgunConfig =
+    (
+      for {
+        uri <- envOrNone("MAILGUN_HOST")
+        validUri <- Uri.fromString(uri).toOption
+        key <- envOrNone("MAILGUN_KEY")
+      } yield MailgunConfig(validUri, key)
+    ) getOrElse { throw new IllegalArgumentException("MailGun environment variables are invalid.") }
 }
 private object DBConfig {
   def apply(): DBConfig =
@@ -61,45 +74,48 @@ object Server extends StreamApp[IO] {
   private val dbConfig = DBConfig()
 
   private implicit val pool: ExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
-  private val xa = (
-    for {
-      t <- HikariTransactor
-        .newHikariTransactor[IO]("org.postgresql.Driver", dbConfig.url, dbConfig.user, dbConfig.password)
-      _ <- t.configure { hx =>
-        IO { hx.setMaximumPoolSize(4) }
-      }
-    } yield t
-  ).unsafeRunSync()
-  private val userRepo = UserRepository.userRepo()
 
   private val emailConfig = EmailConfig()
   import CatsMailerIO._
   private val mailer = new Mailer[IO](emailConfig)
 
-  private val cookieConfig = CookieConfig()
-
-  private val baseUrl = "http://localhost:8080"
-  private val tp = NowTimeProvider
-  private val rp = SecureRandomProvider
-  private val cs = new DefaultCookieSigner(cookieConfig.signingKey)
-
-  private val authEndpoint =
-    new AuthEndpoints[IO]().build(baseUrl, cookieConfig.cookieName, cs, xa, tp, rp, userRepo, mailer)
-
-  private val securedWrapper = new SecuredEndpointWrapper[IO]().build(cookieConfig.cookieName, cs, xa, userRepo)(_)
-  private val homeEndpoint = securedWrapper(new HomeEndpoints[IO]().secureService)
-  private val gamesEndpoint = securedWrapper(new GamesEndpoints[IO]().secureService)
-  private val teamsEndpoint = securedWrapper(new TeamsEndpoints[IO]().secureService(xa))
-
   override def stream(args: List[String], requestShutdown: IO[Unit]): Stream[IO, ExitCode] = {
-    BlazeBuilder[IO]
-      .bindLocal(port)
-      .mountService(homeEndpoint)
-      .mountService(gamesEndpoint, "/games")
-      .mountService(teamsEndpoint, "/teams")
-      .mountService(authEndpoint)
-      .withExecutionContext(pool)
-      .serve
+    for {
+      xa <- Stream.eval {
+        HikariTransactor
+          .newHikariTransactor[IO]("org.postgresql.Driver", dbConfig.url, dbConfig.user, dbConfig.password)
+      }
+      _ <- Stream.eval {
+        xa.configure { hx =>
+          IO { hx.setMaximumPoolSize(4) }
+        }
+      }
+      client <- Http1Client.stream[IO]()
+
+      cookieConfig = CookieConfig()
+      mailgunConfig = MailgunConfig()
+
+      baseUrl = "http://localhost:8080"
+      tp = NowTimeProvider
+      rp = SecureRandomProvider
+      cs = new DefaultCookieSigner(cookieConfig.signingKey)
+
+      authEndpoint = new AuthEndpoints[IO]().build(baseUrl, cookieConfig.cookieName, cs, xa, tp, rp, mailer)
+
+      securedWrapper = new SecuredEndpointWrapper[IO]().build(cookieConfig.cookieName, cs, xa)(_)
+      homeEndpoint = securedWrapper(new HomeEndpoints[IO]().secureService)
+      gamesEndpoint = securedWrapper(new GamesEndpoints[IO](xa, client, mailgunConfig).secureService)
+      teamsEndpoint = securedWrapper(new TeamsEndpoints[IO]().secureService(xa))
+
+      code <- BlazeBuilder[IO]
+        .bindLocal(port)
+        .mountService(homeEndpoint)
+        .mountService(gamesEndpoint, "/games")
+        .mountService(teamsEndpoint, "/teams")
+        .mountService(authEndpoint)
+        .withExecutionContext(pool)
+        .serve
+    } yield code
   }
 }
 

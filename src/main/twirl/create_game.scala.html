@@ -1,0 +1,42 @@
+@import templates.html.main
+@import templates.html.menu
+@import io.github.daddykotex.subs.repositories.TeamRepository.TeamWithId
+@(title: String, teams: List[TeamWithId], maybeUser: Option[String])
+@main(title) {
+    @menu(maybeUser) {
+      <div class="container">
+        <div class="row">
+          <div class="col-xs">
+            <form method="POST" action="/games/create">
+              <div class="form-group">
+                <label for="gameteaminput">Team</label>
+                <select class="form-control" id="gameteaminput" name="teamid">
+                  @teams.zipWithIndex.map { case (t, i) =>
+                    <option value="@t.id" @if(i==1){ selected }>@t.name</option>
+                  }
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="gamedateinput">Date</label>
+                <input name="date" type="date" class="form-control" id="gamedateinput">
+              </div>
+              <div class="form-group">
+                <label for="gametimeinput">Time</label>
+                <input name="time" type="time" class="form-control" id="gametimeinput">
+              </div>
+              <div class="form-group">
+                <label for="gameopponentinput">Opponent</label>
+                <input name="opponent" type="text" class="form-control" id="gameopponentinput" placeholder="Enter your opponent's name">
+              </div>
+              <div class="form-group">
+                <label for="gamelocationinput">Location</label>
+                <input name="location" type="text" class="form-control" id="gamelocationinput" placeholder="Enter your game's location">
+              </div>
+              <button type="submit" class="btn btn-primary">Submit</button>
+            </form>
+          </div>
+        </div>
+        <hr />
+      </div>
+    }
+}

@@ -42,3 +42,8 @@ class DefaultCookieSigner(key: String) extends CookieSigner[String] {
 object FormUtils {
   def invalidForm(msg: String = "Form submission is invalid") = org.http4s.InvalidMessageBodyFailure(msg)
 }
+
+object TemplateUtils {
+  def date(date: Instant): String = "date only"
+  def time(date: Instant): String = "time only"
+}

@@ -1,14 +1,14 @@
 @import templates.html.main
 @import templates.html.menu
-@import io.github.daddykotex.subs.repositories.TeamRepository.TeamWithId
+@import io.github.daddykotex.subs.repositories.GameRepository.GameWithId
 
-@(title: String, teams: List[TeamWithId], maybeUser: Option[String])
+@(title: String, games: List[GameWithId], maybeUser: Option[String])
 @main(title) {
     @menu(maybeUser) {
-      <div class="container teams-container">
+      <div class="container games-container">
         <div class="row">
           <div class="col-xs">
-            <a href="/teams/create" class="btn btn-primary">
+            <a href="/games/create" class="btn btn-primary">
               Create
             </a>
           </div>
@@ -21,13 +21,17 @@
                 <tr>
                   <th scope="col">#</th>
                   <th scope="col">Date</th>
+                  <th scope="col">Location</th>
+                  <th scope="col">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                @teams.map { team =>
+                @games.map { game =>
                   <tr>
-                    <th scope="row"><a href="/teams/@team.id">@team.id</a></th>
-                    <td>@team.name</td>
+                    <th scope="row"><a href="/games/@game.id">@game.id</a></th>
+                    <td>@game.startDate</td>
+                    <td>@game.location</td>
+                    <td><a class="btn btn-primary" href="/games/@game.id/invite">Invite</a></td>
                   </tr>
                 }
               </tbody>

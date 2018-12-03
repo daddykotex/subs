@@ -1,0 +1,38 @@
+@import templates.html.main
+@import templates.html.menu
+@import io.github.daddykotex.subs.repositories.TeamRepository.TeamWithId
+@import io.github.daddykotex.subs.repositories.GameRepository.GameWithId
+@(game: GameWithId, team: TeamWithId, players: List[String], maybeUser: Option[String])
+@main(team.name) {
+    @menu(maybeUser) {
+      <div class="container">
+        <div class="row">
+          <form method="POST" action="/games/@game.id/invite">
+            <div class="col-xs">
+              <p>Select/deselect players to send invite for the game at <b>@game.location</b> on <b>@game.startDate</b> against <b>@game.opponent</b></p>
+            </div>
+            <div class="col-xs">
+              <button class="btn btn-primary" type="submit">Send</button>
+
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th scope="col">Check to send</th>
+                    <th scope="col">Email</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @players.map { p =>
+                    <tr>
+                      <td><input type="checkbox" value="@p" name="invitation" selected /></td>
+                      <td>@p</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </form>
+        </div>
+      </div>
+    }
+}

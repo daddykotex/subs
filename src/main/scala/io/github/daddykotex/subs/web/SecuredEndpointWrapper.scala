@@ -22,11 +22,10 @@ class SecuredEndpointWrapper[F[_]: Effect] extends Http4sDsl[F] {
   def build(
       cookieName: String,
       cs: CookieSigner[String],
-      xa: Transactor[F],
-      userRepository: UserRepository
+      xa: Transactor[F]
   )(route: AuthedService[VerifiedUser, F]): HttpService[F] = {
     val findUser: Kleisli[F, Long, Either[String, VerifiedUser]] = Kleisli { id =>
-      userRepository
+      UserRepository
         .fetchVerifiedUser(id)
         .map { _.toRight(s"The user with id: '$id' was not found") }
         .transact(xa)

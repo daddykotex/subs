@@ -1,0 +1,16 @@
+@import io.github.daddykotex.subs.repositories.GameRepository.GameWithId
+@import io.github.daddykotex.subs.utils.TemplateUtils
+@(game: GameWithId)
+<h1>HI,</h1>
+<p>
+  You've been invited to play at <b>@game.location<b> on <b>@game.startDate
+  Thanks for signing up, we just need to confirm your email. To do so, click on the
+  following link: <a href="@url">confirm my email</a>.
+</p>
+
+<p>
+  By the way, if you have any question regarding this website, you can reply to this
+  email directly. We'll be happy to help you out!
+</p>
+
+<p><b>The Subs team</b></p>
